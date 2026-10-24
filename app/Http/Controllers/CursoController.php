@@ -6,6 +6,8 @@ use App\Models\Curso;
 use App\Models\Docente;
 use App\Models\Estudiante;
 use Illuminate\Http\Request;
+use App\Mail\MatriculaConfirmada;
+use Illuminate\Support\Facades\Mail;
 
 class CursoController extends Controller
 {
@@ -64,14 +66,18 @@ class CursoController extends Controller
         return to_route('cursos.index')->with('ok', 'Curso eliminado.');
     }
 
-    public function matricular(Request $request, Curso $curso)
+   public function matricular(Request $request, Curso $curso)
     {
         $datos = $request->validate([
-            'estudiante_id' => ['required', 'exists:estudiantes,id'],
-            'nota' => ['nullable', 'numeric', 'between:0,20'],
+        'estudiante_id' => ['required', 'exists:estudiantes,id'],
+        'nota' => ['nullable', 'numeric', 'between:0,20'],
         ]);
 
         $curso->estudiantes()->attach($datos['estudiante_id'], ['nota' => $datos['nota'] ?? null]);
+
+        
+        $estudiante = Estudiante::find($datos['estudiante_id']);
+        Mail::to($estudiante->email)->send(new MatriculaConfirmada($estudiante, $curso));
 
         return back()->with('ok', 'Estudiante matriculado.');
     }
